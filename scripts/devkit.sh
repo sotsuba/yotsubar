@@ -3,6 +3,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/devkit-manager"
+PID_FILE="$STATE_DIR/devkit.pid"
+LOG_FILE="$STATE_DIR/devkit.log"
 
 source "$SCRIPT_DIR/lib/logger.sh"
 source "$SCRIPT_DIR/lib/process.sh"
@@ -28,7 +31,7 @@ _is_devkit() {
 }
 
 devkit_start() {
-    local pid 
+    local pid start_time
 
     if [[ -f "$PID_FILE" ]]; then
         log_warn "DevKit PID file already exists"
@@ -36,18 +39,23 @@ devkit_start() {
     fi
 
     if ! command -v gnome-shell >/dev/null 2>&1; then 
-        log_error: "gnome-shell not found"
+        log_error "gnome-shell not found"
         return 1
     fi
 
+    mkdir -p -- "$STATE_DIR"
     log_info "Starting GNOME Shell DevKit..."
 
-    dbus-run-session -- \
+    setsid dbus-run-session -- \
         gnome-shell --devkit --wayland \
         >"$LOG_FILE" 2>&1 </dev/null &
 
     pid=$!
-    printf '%s\n' "$pid" > "$PID_FILE"
+    start_time=$(ps -p "$pid" -o lstart=) || {
+        log_error "DevKit exited before it could be recorded; see $LOG_FILE"
+        return 1
+    }
+    printf '%s|%s\n' "$pid" "$start_time" > "$PID_FILE"
 
     log_info "DevKit launched (PID: $pid)"
 }
@@ -79,6 +87,12 @@ devkit_stop() {
     fi
 
     IFS='|' read -r pid start_time < "$PID_FILE"
+
+    if [[ "$pid" =~ ^[0-9]+$ ]] && ! kill -0 "$pid" 2>/dev/null; then
+        rm -f -- "$PID_FILE"
+        log_info "DevKit is not running; removed stale PID file"
+        return 0
+    fi
 
     if ! _is_devkit "$pid" "$start_time"; then
         log_error "Cannot verify DevKit process"
