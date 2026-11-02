@@ -1,0 +1,8 @@
+{
+  "name": "yotsubar",
+  "description": "A time budget tracker",
+  "uuid": "yotsubar@sotsuba",
+  "shell-version": [
+    "50"
+  ]
+}
