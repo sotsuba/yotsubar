@@ -109,7 +109,36 @@ devkit_stop() {
 }
 
 devkit_restart() {
-    :
+    local force=false
+
+    while (( $# > 0 )); do
+        case "$1" in
+            -f|--force)
+                force=true
+                ;;
+            -h|--help)
+                echo "Usage: devkit restart [--force]"
+                return 0
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                return 2
+                ;;
+        esac
+        shift
+    done
+
+    log_info "Restarting GNOME Shell DevKit..."
+
+    if [[ "$force" == true ]]; then
+        devkit_stop --force || return 1
+    else
+        devkit_stop || return 1
+    fi
+
+    devkit_start || return 1
+
+    log_info "DevKit restart requested"
 }
 
 devkit_status() {
