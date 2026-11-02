@@ -1,0 +1,51 @@
+
+name: check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: check-lint
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: install-deps
+        run: npm ci
+
+      - name: check-lint
+        id: lint
+        continue-on-error: true
+        run: |
+          npx eslint . \
+            --format @microsoft/eslint-formatter-sarif \
+            --output-file eslint-results.sarif
+
+      - name: report
+        if: ${{ !env.ACT && hashFiles('eslint-results.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: eslint-results.sarif
+
+      - name: enforce-lint
+        if: steps.lint.outcome == 'failure'
+        run: exit 1
