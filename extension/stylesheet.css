@@ -1,4 +1,46 @@
-.yotsubar-box { spacing: 8px; }
-.yotsubar-dot { width: 9px; height: 9px; border-radius: 5px; }
-.yotsubar-bar { spacing: 2px; }
-.yotsubar-seg { border-radius: 2px; }
+/* Top Bar */
+.yotsubar-box {
+    spacing: 8px;
+}
+
+.yotsubar-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 5px;
+}
+
+.yotsubar-bar {
+    spacing: 2px;
+}
+
+.yotsubar-seg {
+    border-radius: 2px;
+}
+
+/* Popup Menu */
+.yotsubar-popup {
+    min-width: 300px;
+}
+
+.yotsubar-head {
+    font-weight: bold;
+}
+
+.yotsubar-sub {
+    color: #b5b5b5;
+    font-size: 0.9em;
+}
+
+.yotsubar-row {
+    border-radius: 8px;
+    padding: 8px 10px;
+    spacing: 10px;
+}
+
+.yotsubar-row-active {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.yotsubar-track {
+    border-radius: 3px;
+}
