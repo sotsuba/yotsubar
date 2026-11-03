@@ -1,0 +1,70 @@
+
+name: check
+
+on:
+  pull_request:
+    branches: [main, release, 'releases/**']
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: check-title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      TYPES: "feat fix docs style refactor perf test build ci chore revert"
+
+    steps:
+      - name: Validate PR title
+        shell: bash
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          # Build the Conventional Commits pattern.
+          read -r -a types <<< "$TYPES"
+          alternation=$(IFS='|'; echo "${types[*]}")
+          pattern="^(${alternation})(\([a-zA-Z0-9._/-]+\))?!?: [^[:space:]].*$"
+
+          if [[ "$TITLE" =~ $pattern ]]; then
+            echo "Valid PR title: $TITLE"
+
+            {
+              echo "### PR title validation"
+              echo
+              echo "**Status:** Passed"
+              echo
+              echo "**Title:** \`$TITLE\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            exit 0
+          fi
+
+          echo "::error title=Invalid PR title::Title must follow the Conventional Commits format."
+
+          {
+            echo "### PR title validation"
+            echo
+            echo "**Status:** Failed"
+            echo
+            echo "**Title:** \`$TITLE\`"
+            echo
+            echo "**Expected format:** \`type(scope): description\`"
+            echo
+            echo "**Allowed types:** \`$TYPES\`"
+            echo
+            echo "**Examples:**"
+            echo "- \`feat: add user authentication\`"
+            echo "- \`fix(auth): handle expired tokens\`"
+            echo "- \`refactor(api)!: remove deprecated endpoints\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit 1
