@@ -4,7 +4,8 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { fmt } from '../core/fmt.js';
+import { IndicatorMenuSection } from './menu.js';
 
 // TODO: hardcode.
 const DEFAULT_CATS = [
@@ -16,16 +17,6 @@ const DEFAULT_CATS = [
 const OVER_BUDGET_COLOR = '#E24B4A';
 const PANEL_BAR_WIDTH = 120;
 const PANEL_BAR_HEIGHT = 6;
-const MENU_BAR_WIDTH = 220;
-
-function fmt(sec) {
-    const s = Math.abs(Math.round(sec));
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const x = s % 60;
-    const p = n => String(n).padStart(2, '0');
-    return `${sec < 0 ? '+' : ''}${p(h)}:${p(m)}:${p(x)}`;
-}
 
 export const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
@@ -52,7 +43,9 @@ class Indicator extends PanelMenu.Button {
         box.add_child(this._bar);
 
         this._buildBar();
-        this._buildMenu();
+        this.menu.box.add_style_class_name('yotsubar-popup');
+        this._menuSection = new IndicatorMenuSection(this._cats, (index) => this._toggleSession(index));
+        this.menu.addMenuItem(this._menuSection);
         this._render();
         this._timerId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
@@ -92,50 +85,10 @@ class Indicator extends PanelMenu.Button {
         return GLib.SOURCE_CONTINUE;
     }
 
-    _buildMenu() {
-        this.menu.box.add_style_class_name('yotsubar-popup');
-
-        const head = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
-        this._headTitle = new St.Label({text: 'Hôm nay', style_class: 'yotsubar-head', x_expand: true});
-        this._headSub = new St.Label({style_class: 'yotsubar-sub'});
-        head.add_child(this._headTitle);
-        head.add_child(this._headSub);
-        this.menu.addMenuItem(head);
-
-        this._rows = this._cats.map((c, i) => {
-            const item = new PopupMenu.PopupBaseMenuItem({style_class: 'yotsubar-row'});
-            const dot = new St.Widget({style_class: 'yotsubar-dot', y_align: Clutter.ActorAlign.CENTER});
-            dot.set_style(`background-color: ${c.color};`);
-
-            const col = new St.BoxLayout({vertical: true, x_expand: true});
-            const top = new St.BoxLayout();
-            const name = new St.Label({text: c.name, x_expand: true});
-            const left = new St.Label({style_class: 'yotsubar-sub'});
-            top.add_child(name);
-            top.add_child(left);
-
-            const track = new St.Widget({style_class: 'yotsubar-track', width: MENU_BAR_WIDTH, height: 5});
-            const fill = new St.Widget({style_class: 'yotsubar-track', width: 0, height: 5});
-            track.add_child(fill);
-
-            col.add_child(top);
-            col.add_child(track);
-            item.add_child(dot);
-            item.add_child(col);
-
-            item.connect('activate', () => {
-                this._toggleSession(i);
-            });
-
-            this.menu.addMenuItem(item);
-            return {item, left, track, fill};
-        });
-    }
-
     _render() {
         this._renderBar();
         this._renderIndicator();
-        this._renderMenu();
+        this._menuSection.render(this._cats, this._activeIdx);
     }
 
     _renderBar() {
@@ -171,28 +124,6 @@ class Indicator extends PanelMenu.Button {
         this._label.set_text(
             `${cat.name} ${fmt(cat.budget - cat.used)}`
         );
-    }
-
-    _renderMenu() {
-        if (!this._rows) return;
-        let usedSum = 0, budgetSum = 0;
-        this._cats.forEach((c, i) => {
-            const {item, left, track, fill} = this._rows[i];
-            const over = c.used > c.budget;
-            const ratio = Math.min(1, c.used / c.budget);
-
-            left.set_text(over ? `${fmt(c.budget - c.used)} lố` : `${fmt(c.budget - c.used)} còn lại`);
-            track.set_style(`background-color: ${over ? OVER_BUDGET_COLOR : c.soft};`);
-            fill.set_style(`background-color: ${over ? OVER_BUDGET_COLOR : c.color};`);
-            fill.set_width(Math.round(MENU_BAR_WIDTH * ratio));
-
-            if (i === this._activeIdx) item.add_style_class_name('yotsubar-row-active');
-            else item.remove_style_class_name('yotsubar-row-active');
-
-            usedSum += Math.min(c.used, c.budget);
-            budgetSum += c.budget;
-        });
-        this._headSub.set_text(`${(usedSum / 3600).toFixed(1)}h / ${(budgetSum / 3600).toFixed(1)}h`);
     }
 
     destroy() {
