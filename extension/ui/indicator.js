@@ -1,5 +1,4 @@
 import GObject from 'gi://GObject';
-import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
@@ -7,23 +6,25 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import { fmt } from '../core/fmt.js';
 import { IndicatorMenuSection } from './menu.js';
 
-// TODO: hardcode.
-const DEFAULT_CATS = [
-    {name: 'Speech', color: '#7F77DD', soft: 'rgba(127,119,221,0.3)', budget: 4 * 3600, used: 3600},
-    {name: 'English', color: '#1D9E75', soft: 'rgba(29,158,117,0.3)', budget: 3600, used: 0},
-    {name: 'Code', color: '#D85A30', soft: 'rgba(216,90,48,0.3)', budget: 2 * 3600, used: 1800},
-];
-
 const OVER_BUDGET_COLOR = '#E24B4A';
 const PANEL_BAR_WIDTH = 120;
 const PANEL_BAR_HEIGHT = 6;
 
 export const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
-    _init() {
+    _init(tracker, categories) {
         super._init(0.5, 'yotsubar');
+        this._tracker = tracker;
         this._activeIdx = null;
-        this._cats = DEFAULT_CATS.map(c => ({...c}));
+        this._cats = categories.map(c => {
+            const n = parseInt(c.color.slice(1), 16);
+            return {
+                ...c,
+                budget: c.daily_budget_sec,
+                used: 0,
+                soft: `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, 0.3)`,
+            };
+        });
 
         const box = new St.BoxLayout({style_class: 'yotsubar-box'});
         this.add_child(box);
@@ -44,14 +45,15 @@ class Indicator extends PanelMenu.Button {
 
         this._buildBar();
         this.menu.box.add_style_class_name('yotsubar-popup');
-        this._menuSection = new IndicatorMenuSection(this._cats, (index) => this._toggleSession(index));
+        this._menuSection = new IndicatorMenuSection(this._cats, index => {
+            const id = this._cats[index].id;
+            if (this._tracker.activeId === id)
+                this._tracker.stop();
+            else
+                this._tracker.start(id);
+        });
         this.menu.addMenuItem(this._menuSection);
-        this._render();
-        this._timerId = GLib.timeout_add_seconds(
-            GLib.PRIORITY_DEFAULT,
-            1,
-            () => this._tick()
-        );
+        this.refresh();
     }
 
     _buildBar() {
@@ -67,25 +69,11 @@ class Indicator extends PanelMenu.Button {
         });
     }
 
-    _toggleSession(index) {
-        this._activeIdx = this._activeIdx === index
-            ? null
-            : index;
+    refresh() {
+        this._cats.forEach(c => { c.used = this._tracker.usedSeconds(c.id); });
+        const idx = this._cats.findIndex(c => c.id === this._tracker.activeId);
+        this._activeIdx = idx === -1 ? null : idx;
 
-        this._render();
-    }
-
-    _tick() {
-        if (this._activeIdx === null)
-            return GLib.SOURCE_CONTINUE;
-
-        this._cats[this._activeIdx].used += 1;
-        this._render();
-
-        return GLib.SOURCE_CONTINUE;
-    }
-
-    _render() {
         this._renderBar();
         this._renderIndicator();
         this._menuSection.render(this._cats, this._activeIdx);
@@ -124,13 +112,5 @@ class Indicator extends PanelMenu.Button {
         this._label.set_text(
             `${cat.name} ${fmt(cat.budget - cat.used)}`
         );
-    }
-
-    destroy() {
-        if (this._timerId) {
-            GLib.source_remove(this._timerId);
-            this._timerId = null;
-        }
-        super.destroy();
     }
 });
