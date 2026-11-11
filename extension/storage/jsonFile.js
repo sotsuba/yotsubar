@@ -23,7 +23,7 @@ export function load(dataDir, fileName) {
     try {
         return JSON.parse(decoder.decode(bytes));
     } catch (e) {
-        console.error(`timebudget: ${fileName} bị hỏng, đã backup`, e);
+        console.error(`yotsubar: ${fileName} bị hỏng, đã backup`, e);
         GLib.rename(path, `${path}.corrupt-${Date.now()}`);
         return null;
     }

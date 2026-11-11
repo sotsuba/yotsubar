@@ -13,13 +13,13 @@ export default class YotsubarExtension extends Extension {
 
         const categories = loadCategories(dataDir);
         this._tracker = own(new Tracker(dataDir, () => this._indicator?.refresh()));
-        this._indicator = own(new Indicator(this._tracker, categories));
+        this._indicator = own(new Indicator(this._tracker, categories, () => this.openPreferences()));
         Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'left');
     }
 
     disable() {
         for (const cleanup of this._cleanups.reverse()) {
-            try { cleanup(); } catch (e) { console.error('timebudget cleanup', e); }
+            try { cleanup(); } catch (e) { console.error('yotsubar cleanup', e); }
         }
         this._cleanups = null;
         this._tracker = null;
