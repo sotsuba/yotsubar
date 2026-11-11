@@ -2,9 +2,11 @@ import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import GLib from 'gi://GLib';
 
+import {DAY_SEC} from '../storage/categoryStore.js';
 import {fmtBudget, parseBudget, hexToRgba, rgbaToHex} from './utils.js';
 
-export function showCategoryDialog(parent, existing, onSave) {
+// allocatedSec: total budget of all other categories (excluding the one being edited).
+export function showCategoryDialog(parent, existing, allocatedSec, onSave) {
     const isEdit = existing !== null;
 
     const nameRow = new Adw.EntryRow({ title: 'Name', text: existing?.name ?? '' });
@@ -23,11 +25,16 @@ export function showCategoryDialog(parent, existing, onSave) {
     list.append(colorRow);
     list.append(budgetRow);
 
+    const hint = new Gtk.Label({ xalign: 0, wrap: true, css_classes: ['dim-label', 'caption'] });
+    const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, spacing: 6 });
+    content.append(list);
+    content.append(hint);
+
     const dialog = new Adw.MessageDialog({
         transient_for: parent,
         modal: true,
         heading: isEdit ? 'Edit Category' : 'Add Category',
-        extra_child: list,
+        extra_child: content,
     });
     dialog.add_response('cancel', 'Cancel');
     dialog.add_response('save', isEdit ? 'Save' : 'Add');
@@ -37,13 +44,17 @@ export function showCategoryDialog(parent, existing, onSave) {
     function validate() {
         const validName = nameRow.get_text().trim().length > 0;
         const seconds = parseBudget(budgetRow.get_text());
-        const validBudget = Number.isFinite(seconds) && seconds > 0;
+        const validBudget = Number.isFinite(seconds) && seconds > 0 && seconds <= DAY_SEC &&
+            allocatedSec + seconds <= DAY_SEC;
         nameRow.remove_css_class('error');
         budgetRow.remove_css_class('error');
         if (!validName && nameRow.get_text())
             nameRow.add_css_class('error');
         if (!validBudget && budgetRow.get_text())
             budgetRow.add_css_class('error');
+
+        hint.set_text(`${fmtBudget(Math.max(0, DAY_SEC - allocatedSec))} left of 24h across all categories.`);
+
         dialog.set_response_enabled('save', validName && validBudget);
     }
 
@@ -60,7 +71,8 @@ export function showCategoryDialog(parent, existing, onSave) {
         const name = nameRow.get_text().trim();
 
         const budgetSec = parseBudget(budgetRow.get_text());
-        if (!name || !Number.isFinite(budgetSec) || budgetSec <= 0)
+        if (!name || !Number.isFinite(budgetSec) || budgetSec <= 0 ||
+            budgetSec > DAY_SEC || allocatedSec + budgetSec > DAY_SEC)
             return;
 
         onSave({

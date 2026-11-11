@@ -34,8 +34,14 @@ export function createCategoriesPage(window) {
         saveAndRebuild();
     }
 
+    function allocatedExcept(id) {
+        return categories
+            .filter(category => category.id !== id)
+            .reduce((sum, category) => sum + category.daily_budget_sec, 0);
+    }
+
     function editCategory(category) {
-        showCategoryDialog(window, category, updated => {
+        showCategoryDialog(window, category, allocatedExcept(category.id), updated => {
             categories = categories.map(item => item.id === updated.id ? updated : item);
             saveAndRebuild();
         });
@@ -50,7 +56,7 @@ export function createCategoriesPage(window) {
         });
     }
 
-    addBtn.connect('clicked', () => showCategoryDialog(window, null, category => {
+    addBtn.connect('clicked', () => showCategoryDialog(window, null, allocatedExcept(null), category => {
         categories = [...categories, category];
         saveAndRebuild();
     }));
