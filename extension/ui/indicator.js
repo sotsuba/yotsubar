@@ -3,6 +3,7 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { fmt } from '../core/fmt.js';
 import { IndicatorMenuSection } from './menu.js';
 
@@ -12,9 +13,10 @@ const PANEL_BAR_HEIGHT = 6;
 
 export const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
-    _init(tracker, categories) {
+    _init(tracker, categories, onOpenSettings) {
         super._init(0.5, 'yotsubar');
         this._tracker = tracker;
+        this._onOpenSettings = onOpenSettings;
         this._activeIdx = null;
         this._cats = categories.map(c => {
             const n = parseInt(c.color.slice(1), 16);
@@ -53,6 +55,13 @@ class Indicator extends PanelMenu.Button {
                 this._tracker.start(id);
         });
         this.menu.addMenuItem(this._menuSection);
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        const settingsItem = new PopupMenu.PopupMenuItem('Settings');
+        settingsItem.connect('activate', () => {
+            this.menu.close();
+            this._onOpenSettings?.();
+        });
+        this.menu.addMenuItem(settingsItem);
         this.refresh();
     }
 
