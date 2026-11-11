@@ -2,7 +2,7 @@ import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import GLib from 'gi://GLib';
 
-import {DAY_SEC} from '../storage/categoryStore.js';
+import {DAY_SEC, MAX_NAME_LENGTH} from '../storage/categoryStore.js';
 import {fmtBudget, parseBudget, hexToRgba, rgbaToHex} from './utils.js';
 
 // allocatedSec: total budget of all other categories (excluding the one being edited).
@@ -42,7 +42,8 @@ export function showCategoryDialog(parent, existing, allocatedSec, onSave) {
     dialog.set_response_appearance('save', Adw.ResponseAppearance.SUGGESTED);
 
     function validate() {
-        const validName = nameRow.get_text().trim().length > 0;
+        const nameLength = nameRow.get_text().trim().length;
+        const validName = nameLength > 0 && nameLength <= MAX_NAME_LENGTH;
         const seconds = parseBudget(budgetRow.get_text());
         const validBudget = Number.isFinite(seconds) && seconds > 0 && seconds <= DAY_SEC &&
             allocatedSec + seconds <= DAY_SEC;
@@ -53,7 +54,9 @@ export function showCategoryDialog(parent, existing, allocatedSec, onSave) {
         if (!validBudget && budgetRow.get_text())
             budgetRow.add_css_class('error');
 
-        hint.set_text(`${fmtBudget(Math.max(0, DAY_SEC - allocatedSec))} left of 24h across all categories.`);
+        hint.set_text(nameLength > MAX_NAME_LENGTH
+            ? `Name must be ${MAX_NAME_LENGTH} characters or fewer.`
+            : `${fmtBudget(Math.max(0, DAY_SEC - allocatedSec))} left of 24h across all categories.`);
 
         dialog.set_response_enabled('save', validName && validBudget);
     }
@@ -71,7 +74,8 @@ export function showCategoryDialog(parent, existing, allocatedSec, onSave) {
         const name = nameRow.get_text().trim();
 
         const budgetSec = parseBudget(budgetRow.get_text());
-        if (!name || !Number.isFinite(budgetSec) || budgetSec <= 0 ||
+        if (!name || name.length > MAX_NAME_LENGTH ||
+            !Number.isFinite(budgetSec) || budgetSec <= 0 ||
             budgetSec > DAY_SEC || allocatedSec + budgetSec > DAY_SEC)
             return;
 
