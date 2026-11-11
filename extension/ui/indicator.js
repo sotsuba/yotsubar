@@ -91,8 +91,9 @@ class Indicator extends PanelMenu.Button {
     _renderBar() {
         this._cats.forEach((cat, i) => {
             const {seg, fill, width} = this._segs[i];
-            const over = cat.used > cat.budget;
-            const ratio = cat.budget > 0 ? Math.min(1, Math.max(0, cat.used / cat.budget)) : 0;
+            const remaining = cat.budget - cat.used;
+            const over = remaining < 0;
+            const ratio = cat.budget > 0 ? Math.min(1, Math.max(0, remaining / cat.budget)) : 0;
             seg.set_style(
                 `background-color: ${over ? OVER_BUDGET_COLOR : cat.soft};`
             );
@@ -101,7 +102,7 @@ class Indicator extends PanelMenu.Button {
                 `background-color: ${over ? OVER_BUDGET_COLOR : cat.color};`
             );
 
-            fill.set_width(Math.round(width * ratio));
+            fill.set_width(over ? width : Math.round(width * ratio));
         });
     }
 
