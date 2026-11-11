@@ -3,6 +3,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {Indicator} from './ui/indicator.js';
 import {Tracker} from './services/tracker.js';
+import {CategoryWatcher} from './services/categoryWatcher.js';
 import {dataDir} from './storage/paths.js';
 import {loadCategories} from './storage/categoryStore.js';
 
@@ -14,6 +15,7 @@ export default class YotsubarExtension extends Extension {
         const categories = loadCategories(dataDir);
         this._tracker = own(new Tracker(dataDir, () => this._indicator?.refresh()));
         this._indicator = own(new Indicator(this._tracker, categories, () => this.openPreferences()));
+        own(new CategoryWatcher(dataDir, categories, changed => this._indicator?.setCategories(changed)));
         Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'left');
     }
 

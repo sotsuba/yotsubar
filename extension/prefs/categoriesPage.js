@@ -17,7 +17,6 @@ export function createCategoriesPage(window) {
 
     const group = new Adw.PreferencesGroup({
         title: 'Time Budget Categories',
-        description: 'Changes take effect after restarting the extension.',
         header_suffix: addBtn,
     });
     page.add(group);
