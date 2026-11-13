@@ -4,7 +4,7 @@ import Clutter from 'gi://Clutter';
 
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import { fmt } from '../core/fmt.js';
+import { fmtBudget } from '../core/fmt.js';
 import { IndicatorMenuSection } from './menu.js';
 import { UsageBar } from './usageBar.js';
 
@@ -108,7 +108,7 @@ class Indicator extends PanelMenu.Button {
         );
 
         this._label.set_text(
-            `${cat.name} ${fmt(cat.budget - cat.used)}`
+            `${cat.name} ${cat.used > cat.budget ? '+' : ''}${fmtBudget(cat.budget - cat.used)}`
         );
     }
 });

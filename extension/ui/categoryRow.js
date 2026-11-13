@@ -3,7 +3,7 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import { fmt } from '../core/fmt.js';
+import { fmtBudget } from '../core/fmt.js';
 
 const MENU_BAR_WIDTH = 220;
 const OVER_BUDGET_COLOR = '#E24B4A';
@@ -39,7 +39,7 @@ class extends PopupMenu.PopupBaseMenuItem {
         const over = cat.used > cat.budget;
         const ratio = Math.min(1, cat.used / cat.budget);
 
-        this._left.set_text(over ? `${fmt(cat.budget - cat.used)} lố` : `${fmt(cat.budget - cat.used)} còn lại`);
+        this._left.set_text(over ? `${fmtBudget(cat.budget - cat.used)} lố` : `${fmtBudget(cat.budget - cat.used)} còn lại`);
         this._track.set_style(`background-color: ${over ? OVER_BUDGET_COLOR : cat.soft};`);
         this._fill.set_style(`background-color: ${over ? OVER_BUDGET_COLOR : cat.color};`);
         this._fill.set_width(Math.round(MENU_BAR_WIDTH * ratio));
