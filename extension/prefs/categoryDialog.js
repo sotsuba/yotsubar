@@ -3,7 +3,8 @@ import Gtk from 'gi://Gtk';
 import GLib from 'gi://GLib';
 
 import {DAY_SEC, MAX_NAME_LENGTH} from '../storage/categoryStore.js';
-import {fmtBudget, parseBudget, hexToRgba, rgbaToHex} from './utils.js';
+import {hexToRgba, rgbaToHex} from './utils.js';
+import {fmtBudget, parseBudget} from '../core/fmt.js';
 
 // allocatedSec: total budget of all other categories (excluding the one being edited).
 export function showCategoryDialog(parent, existing, allocatedSec, onSave) {

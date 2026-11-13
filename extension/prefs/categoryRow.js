@@ -2,7 +2,7 @@ import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import GObject from 'gi://GObject';
 
-import {fmtBudget} from './utils.js';
+import {fmtBudget} from '../core/fmt.js';
 
 function colorDot(color) {
     const dot = new Gtk.Box({ valign: Gtk.Align.CENTER });
